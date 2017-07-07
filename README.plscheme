@@ -1,0 +1,104 @@
+$Id: README.plscheme,v 1.13 2008/02/18 00:02:52 knt Exp $
+ ____.  _,         _
+ L|  ^\ I|        &/ ___   ___        ____  _      ____
+ LI__// I|       /# /  &\ /  &\ |  #| |    |\\  /| |
+ LI--'  I|      #/  I.__  |     |__#| |___ | \\/#| |___
+ LI     I|__,  /|       \ |     |  #| |    |  ^ #| |
+ LI     I___| I/     __%/ \__%/ |  #| |___ |    &| |___
+__________            ________________________________________________________
+_/_/_/_/_/ PL/SCHEME /_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+
+PL/scheme is a PostgreSQL procedural language handler for Scheme programming
+language released under BSD license. PL/scheme uses Guile in the background as
+its Scheme interpreter. With lots of builtin SRFIs, GOOPS framework and complete
+R5RS compliancy of Guile, PL/scheme will power up PostgreSQL procedures in your
+favorite programming language!
+
+For more information you can visit project web site at
+http://plscheme.projects.postgresql.org/
+
+
+__________                             ________________________________________
+_/_/_/_/_/ COMPILATION & INSTALLATION /_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+
+You'll need Guile (version >= 1.8.0) to be able to compile and run PL/scheme.
+But luckily, most of the Linux/BSD distributions provide Guile by default, or at
+least there should be a binary package of it appropriate to your distribution.
+
+The most easy (and suggested) way to compile compile and install PL/scheme is to
+use install.sh script that comes with the package. (See `./install.sh --help'
+for details.) It's also possible to follow below steps that goes into depths of
+the compilation and installation process.
+
+First of all, you'll need to compile plscheme.c file to have plscheme.so unless
+you downloaded a binary version of PL/scheme.
+
+#
+# While compiling from sources, pay attention to Guile library directories and
+# PostgreSQL directories exposed by pg_config. Also, you need to define
+# MODULE_DIR to make PL/scheme locate place its Scheme files.
+#
+PG_INCLUDEDIR=`pg_config --includedir-server`
+PG_PKGLIBDIR=`pg_config --pkglibdir`
+
+cc -g -Wall -fpic -c \
+  -DMODULE_DIR=\"$PG_PKGLIBDIR\" \
+  -DMAX_CACHE_SIZE=64 \
+  -I$PG_INCLUDEDIR \
+  -o plschemeu.o plscheme.c
+# You can also use a -DSAFE_R5RS flag to get a trusted PL.
+
+cc -lguile -shared -o plschemeu.so plscheme.o
+
+cp plschemeu.so $PG_PKGLIBDIR
+cp init.scm $PG_PKGLIBDIR
+cp dataconv.scm $PG_PKGLIBDIR
+
+After you've got a .so file by manually compiled from source or downloading a
+binary file, you can easily install PL/scheme into a specific database via below
+SQL command:
+
+CREATE FUNCTION plschemeu_call_handler()
+  RETURNS language_handler
+  AS '$libdir/plschemeu' LANGUAGE C;
+
+CREATE LANGUAGE plschemeu
+  HANDLER plschemeu_call_handler;
+
+If everything went ok and you still get these kind of error message while trying
+to load plschemeu.so:
+
+FATAL:  could not load library "/../plschemeu.so": /.../libguile.so.17: undefined
+symbol: pthread_create
+
+Just use -lpthread flag while linking plschemeu.so. (Or prepend -lpthread into
+your LDFLAGS environment varible just before calling ./install.sh script.)
+
+
+__________          __________________________________________________________
+_/_/_/_/_/ LICENSE /_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+
+PL/scheme, Procedural Language Handler
+
+Copyright (c) 2006, Volkan YAZICI <yazicivo@ttnet.net.tr>
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+- Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+- Redistributions in binary form must reproduce the above copyright notice, this
+  list of conditions and the following disclaimer in the documentation and/or
+  other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
