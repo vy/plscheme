@@ -1,0 +1,833 @@
+<html><head>
+	<title>PL/scheme</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-9">
+</head></body>
+
+<h1>PL/scheme, Procedural Language Handler</h1>
+
+<p>PL/scheme is a PostgreSQL procedural language handler for <a
+href="http://swiss.csail.mit.edu/projects/scheme/">Scheme programming
+language</a> released under <a
+href="http://www.xfree86.org/3.3.6/COPYRIGHT2.html#6">BSD license</a>. PL/scheme
+uses <a href="http://www.gnu.org/software/guile/">Guile</a> in the background as
+its Scheme interpreter. With lots of builtin <a
+href="http://srfi.schemers.org/">SRFI</a>s, <a
+href="http://www.gnu.org/software/guile/docs/goops/index.html">GOOPS</a>
+framework and complete <a
+href="http://www.schemers.org/Documents/Standards/R5RS/">R5RS</a> compliancy of
+Guile, PL/scheme will power up PostgreSQL procedures in your favorite
+programming language!</p>
+
+<hr>
+<ul>
+	<li><a href="#features">Features</a></li>
+	<li><a href="#documentation">WYSIWYG Documentation</a></li>
+	<ul>
+		<li><a href="#hello-world">Simple "Hello, World!" procedure.</a></li>
+		<li><a href="#debugging">Debugging & backtracing example.</a></li>
+		<li><a href="#record">Domain, row type argument and return value
+		example.</a></li>
+		<li><a href="#spi">SPI functionality.</a></li>
+		<li><a href="#trigger">Trigger support.</a></li>
+		<li><a href="#exception">Exception handling support.</a></li>
+		<li><a href="#report">Error/Exception report functionality.</a></li>
+		<li><a href="#srf">SRF support.</a></li>
+		<li><a href="#shared">Globally shared variables.</a></li>
+		<li><a href="#exttyp">Extensible type support.</a></li>
+		<li><a href="#arrays">1D array data type support.</a></li>
+		<li><a href="#init">Initialization script functionality.</a></li>
+	</ul>
+	<li><a href="#reference">Function &amp; Symbol Reference</a></li>
+	<ul>
+		<li><a href="#ref-spi-execute">spi-execute <i>command
+		[count]</i></a></li>
+		<li><a href="#ref-spi-prepare">spi-prepare <i>command type</i></a></li>
+		<li><a href="#ref-spi-execute-prepared">spi-execute-prepared
+		<i>plan args [count]</i></a></li>
+		<li><a href="#ref-report">report <i>level message [hint]</i></a></li>
+	</ul>
+	<li><a href="#install">Download &amp; Installation</a></li>
+	<li><a href="#thanks">Thanks</a></li>
+</ul>
+<hr>
+
+<h2 id="features">Features</h2>
+You can find some of the supported features by PL/scheme in the below list.
+<ul>
+	<li>Extensible native type support even for not created yet SQL data types.
+	Domain, complex (ie. table's row) and pseudo (record) types are supported as
+	well.</li>
+	<li>[Nested] record and row types are supported both when returning a
+	record type and as an argument to the procedure,</li>
+	<li>IN, INOUT and OUT argument mode functionality,</li>
+	<li>SPI functionality,</li>
+	<li>Trigger support,</li>
+	<li>Caching for non-volatile (and non-SRF) procedures per [top]
+	transaction,</li>
+	<li>Globally shared variables support,</li>
+	<li>Support for both trusted and untrusted PL modes,</li>
+	<li>and any available feature supported by Guile (fully R5RS compliancy,
+	module system extension, full access to POSIX system calls, networking
+	support, multiple threads, dynamic linking, foreign function call interface,
+	powerful string processing, GOOPS framework, lots of builtin SRFIs and may
+	others) are naturally shipped with PL/scheme too.</li>
+</ul>
+
+<h2 id="features"><span alt="What You See Is What You Get">WYSIWYG</span>
+Documentation</h2>
+<table border="1px" width="100%">
+
+<tr><td><b>Input</b></td><td><b>Output</b></td></tr>
+
+<tr id="hello-world"><td colspan="2"><b>Simple "Hello, World!"
+procedure.</b><ul>
+<li>You must use argument aliases while defining a procedure. Because
+given arguments will be defined with the same name as their aliases in
+the Scheme code.</li>
+</ul></td></tr>
+<tr><td valign="top"><pre>
+CREATE FUNCTION scm_pow(u int, v int)
+RETURNS int AS '
+(let loop ((v v))
+  (if (&lt; v 1) 1
+      (* u (loop (- v 1)))))
+' LANGUAGE plscheme;
+</pre></td><td valign="top"><pre>
+test=# SELECT * FROM scm_pow(2, 5);
+ scm_pow 
+---------
+      32
+</pre></td></tr>
+
+<tr id="debugging"><td colspan="2"><b>Debugging &amp; backtracing
+example.</b></td></tr>
+<tr><td valign="top"><pre>
+CREATE FUNCTION scm_backtrace_test(id int, name text)
+RETURNS text AS '
+(let* ((a (lambda (u v)
+            (format "ID: ~s, User Name: ~s" u v)))
+       (b (a id name)))
+  b)
+' LANGUAGE plscheme;
+</pre></td><td valign="top"><pre>
+test=# SELECT * FROM scm_backtrace_test(13, 'Volkan');
+ERROR:  Uncaugth exception thrown from PL/scheme procedure.
+DETAIL:  Guile error output:
+Backtrace:
+In current input:
+   2: 0* (let* ((a (lambda # #)) (b (a id name))) b)
+   4: 1* [#<procedure #f (u, v)> 13 "Volkan"]
+   3: 2  [simple-format "ID: ~s, User Name: ~s" ...
+
+&lt;unnamed port&gt;:3:13: While evaluating arguments to
+simple-format in expression (format "ID: ~s, User Name: ~s" u ...):
+&lt;unnamed port&gt;:3:13: Unbound variable: u
+</pre></td></tr>
+
+<tr><td valign="top"><pre>
+CREATE OR REPLACE FUNCTION scm_backtrace_test
+(id int, name text) RETURNS text AS '
+(let* ((a (lambda (u v)
+            (format <b>#f</b> "ID: ~s, User Name: ~s" u v)))
+       (b (a id name)))
+  b)
+' LANGUAGE plscheme;
+</pre></td><td valign="top"><pre>
+test=# SELECT * FROM scm_backtrace_test(13, 'Volkan');
+     scm_backtrace_test      
+-----------------------------
+ ID: 13, User Name: "Volkan"
+(1 row)
+</pre></td></tr>
+
+<tr id="record"><td colspan="2"><b>Domain, row type argument and return value
+example.</b><ul>
+<li>Record type arguments will get ported as associate lists into the Scheme
+code. (Nested record types similarly will get ported as nested associative
+lists.)</li>
+<li>It's only possible to return a record type via INOUT/OUT argument
+modes.</li>
+<li>While returning a record type, you must return an associative list with
+the same attributes specified with INOUT/OUT arguments in the procedure
+decleration.</li>
+<li>Attributes' order in the associative list while returning a record type
+is not necessary. It'll be put in the right order by PL/scheme.</li>
+<li>It's possible to return nested record types via nesting associative lists
+one inside another.</li>
+</ul></td></tr>
+<tr><td valign="top"><pre>
+CREATE DOMAIN mydom AS int CHECK (VALUE &gt; 5);
+
+CREATE FUNCTION row_with_dom(IN rec record,
+                             OUT first int,
+                             OUT second mydom)
+AS $$
+(let ((first (cdar rec))
+      (second (cdadr rec)))
+  (list (cons "first" first)
+        (cons "second" second)))
+$$ LANGUAGE plscheme;
+</pre></td><td valign="top"><pre>
+test=# CREATE TABLE row_test (u int, v int);
+CREATE TABLE
+test=# INSERT INTO row_test (u, v) VALUES (1, 2);
+INSERT 0 1
+test=# INSERT INTO row_test (u, v) VALUES (3, 4);
+INSERT 0 1
+
+--
+-- Let's violate our domain rule tied to "OUT second mydom".
+--
+test=# SELECT row_with_dom(row_test) FROM row_test;
+ERROR:  value for domain mydom violates check
+constraint "mydom_check"
+
+--
+-- Trying again with some valid values.
+--
+test=# UPDATE row_test SET u = (u * 10), v = (v * 20);
+UPDATE 2
+test=# SELECT row_with_dom(row_test) FROM row_test;
+ row_with_dom
+--------------
+ (40,10)
+ (80,30)
+(2 rows)
+</pre></td></tr>
+
+<tr><td valign="top"><pre>
+CREATE OR REPLACE FUNCTION nested_rec(INOUT rec record,
+                                      OUT len int)
+AS $$
+(let ((f1 (assoc-ref rec "f1"))
+      (f2 (assoc-ref rec "f2")))
+  (list
+    (cons "rec"
+      (list
+        (cons "f1" f1)
+        (cons "f2" f2)
+        (cons "f1,f2"
+          (list
+            (cons "f1-f2" (- f1 f2))
+            (cons "f1*f2" (* f1 f2))))))
+  (cons "len" (length rec))))
+$$ LANGUAGE plscheme;
+</pre></td><td valign="top"><pre>
+--
+-- You wanted to see some nested records, right?
+--
+test=# SELECT * FROM nested_rec(ROW(1, 2));
+      rec       | len
+----------------+-----
+ (1,2,"(-1,2)") |   2
+(1 row)
+</pre></td></tr>
+
+<tr id="spi"><td colspan="2"><b>SPI functionality.</b><ul>
+<li><code>spi-execute</code> (<i>Function</i>)</li>
+<li><code>spi-prepare</code> (<i>Function</i>)</li>
+<li><code>spi-execute-prepared</code> (<i>Function</i>)</li>
+</ul></td></tr>
+<tr><td valign="top"><pre>
+CREATE OR REPLACE FUNCTION spi_execute_test()
+RETURNS text AS $$
+(let* ((ret (spi-execute
+              (string-append "UPDATE t "
+                             "  SET v = (v / 10) "
+                             "  WHERE u % 2 = 0 "
+                             "  RETURNING u, v")))
+       (status (assoc-ref ret "status"))
+       (tuples (assoc-ref ret "returned-tuples")))
+  
+  (letrec
+    ((hash (lambda (lst val)
+             ; Produce a signature by summing each
+             ; tuple's u*v value.
+             (if (null? lst) val
+                 ; Tuples are made of vectors. We'll
+                 ; just simply reach elements of the
+                 ; current tuple through vector
+                 ; accessor functions.
+                 (hash
+                   (cdr lst)
+                   (+ val
+                     (* (vector-ref (car lst) 0)
+                        (vector-ref (car lst) 1))))))))
+
+    (simple-format #f
+      "Returned query status:\n~s\nSignature: ~s"
+      status (hash tuples 0))))
+$$ LANGUAGE plscheme;
+</pre></td><td valign="top"><pre>
+test=# BEGIN;
+BEGIN
+
+--
+-- Sandbox table.
+--
+test=# CREATE TEMP TABLE t (u, v) AS
+test-#   SELECT S.i, (S.i * 10)
+test-#     FROM generate_series(1, 5) AS S (i);
+SELECT
+
+--
+-- Now calling our test function.
+--
+test=# SELECT spi_execute_test();
+                       spi_test                        
+-------------------------------------------------------
+ Returned query status:
+ #&lt;uninterned-symbol spi-ok-update-returning b5e9a620&gt;
+ Signature: 20
+(1 row)
+
+test=# ROLLBACK;
+ROLLBACK
+</pre></td></tr>
+
+<tr><td valign="top"><pre>
+CREATE OR REPLACE FUNCTION spi_prepare_test()
+RETURNS text AS $$
+(let* ((plan (spi-prepare "SELECT $1, $2"
+                          (vector "text" "int4")))
+       (ret  (spi-execute-prepared
+               plan (vector "example text" "41"))))
+  
+  (simple-format #f
+    (string-append "Returned query status:\n~s\n"
+                   "Returned tuples:\n~s")
+    (assoc-ref ret "status")
+    (assoc-ref ret "returned-tuples")))
+$$ LANGUAGE plscheme;
+</pre></td><td valign="top"><pre>
+test=# SELECT spi_prepare_test();
+              spi_prepare_test
+---------------------------------------------
+ Returned query status:
+ #&lt;uninterned-symbol spi-ok-select b5e44f90&gt;
+ Returned tuples:
+ (#("example text" 41))
+(1 row)
+</pre></td></tr>
+
+<tr id="trigger"><td colspan="2"><b>Trigger support.</b><ul>
+<li><tt>tg-relid</tt> (<i>Integer</i>)</li>
+<li><tt>tg-name</tt> (<i>String</i>)</li>
+<li><tt>tg-relname</tt> (<i>String</i>)</li>
+<li><tt>tg-tablename</tt> (<i>String</i>)</li>
+<li><tt>tg-tableschema</tt> (<i>String</i>)</li>
+<li><tt>tg-when</tt> (<i>Symbol</i>)
+[Possible values: <tt>tg-before</tt>, <tt>tg-after</tt>]</li>
+<li><tt>tg-event</tt> (<i>Symbol</i>)
+[Possible values: <tt>tg-on-insert</tt>, <tt>tg-on-delete</tt>,
+<tt>tg-on-update</tt>]</li>
+<li><tt>tg-for</tt> (<i>Symbol</i>)
+[Possible values: <tt>tg-for-row</tt>, <tt>tg-for-stmt</tt>]</li>
+<li><tt>tg-tuple-new</tt> (<i>Associative List</i>)</li>
+<li><tt>tg-tuple-old</tt> (<i>Associative List</i>)</li>
+</ul></td></tr>
+<tr><td valign="top"><pre>
+CREATE OR REPLACE FUNCTION valid_uv()
+RETURNS trigger AS $$
+(let ((u (assoc-ref tg-tuple-new "u"))
+      (v (assoc-ref tg-tuple-new "v")))
+  (cond
+    ((or (&gt; u 100) (&lt; u 0))
+      ; Skip INSERT/UPDATE command
+      '())
+    
+    ((= v 0)
+      ; Return (u, random(0, 100))
+      (list (cons "u" u)
+            (cons "v" (random 100))))
+
+    ; Return original NEW tuple.
+    (else tg-tuple-new)))
+$$ LANGUAGE plscheme;
+</pre></td><td valign="top"><pre>
+test=# CREATE TABLE t (u int, v int);
+CREATE
+
+test=# CREATE TRIGGER t_valid_uv_trig
+test-#   BEFORE INSERT OR UPDATE ON t
+test-#   FOR EACH ROW EXECUTE PROCEDURE valid_uv();
+CREATE TRIGGER
+
+-- Try to insert an invalid record.
+test=# INSERT INTO t VALUES (101, 101);
+INSERT 0 0
+
+-- Insert a tuple whose v = 0, that will fire trigger
+-- to generate a random number for the v field.
+test=# INSERT INTO t VALUES (80, 0) RETURNING (u, v);
+   row
+---------
+ (80,61)
+(1 row)
+
+-- Insert a valid record.
+test=# INSERT INTO t VALUES (99, 101);
+INSERT 0 1
+</pre></td></tr>
+
+<tr id="exception"><td colspan="2"><b>Exception handling support.</b><ul>
+<li>You can catch any exception that will be raised in an SPI function
+invocation. (For a list of possible exception symbols, see
+<a
+href="http://www.postgresql.org/docs/current/interactive/errcodes-appendix.html"
+>SQL Error Codes</a> page of the PostgreSQL documentation.)</li>
+</ul></td></tr>
+<tr><td valign="top"><pre>
+CREATE OR REPLACE FUNCTION catch_test() RETURNS text AS $$
+; Define will be executed query.
+(define query
+  (lambda ()
+    (symbol-&gt;string
+      (assoc-ref
+        (spi-execute "INSERT INTO foo VALUES (1);")
+        "status"))))
+
+; Define exception handler
+(define handler
+  (lambda (key args)
+    (string-append "Exception: " (symbol-&gt;string key) "\n"
+                   "Message: " args)))
+
+(catch 'undefined-table query handler)
+$$ LANGUAGE plscheme;
+</pre></td><td valign="top"><pre>
+test=# SELECT catch_test();
+               catch_test
+----------------------------------------
+ Exception: undefined-table
+ Message: relation "foo" does not exist
+(1 row)
+</pre></td></tr>
+
+<tr id="report"><td colspan="2"><b>Error/Exception report
+functionality.</b><ul>
+<li><tt>report</tt> (<i>Function</i>)</li>
+</ul></td></tr>
+<tr><td valign="top"><pre>
+CREATE FUNCTION report_exception() RETURNS boolean AS '
+(begin
+  (report exception-level "Except me.")
+  #t)
+' LANGUAGE plscheme;
+
+CREATE FUNCTION report_notice() RETURNS boolean AS '
+(begin
+  (report notice-level "Notice me.")
+  #t)
+' LANGUAGE plscheme;
+</pre></td><td valign="top"><pre>
+test=# SELECT report_exception();
+ERROR:  Except me.
+
+test=# SELECT report_notice();
+NOTICE:  Notice me.
+ report_notice
+---------------
+ t
+(1 row)
+</pre></td></tr>
+
+<tr id="srf"><td colspan="2"><b>SRF support.</b><ul>
+<li>You can implement your own SRFs in PL/scheme just as in any other PL with
+one exception: You must specify at least one INOUT/OUT argument in a SRF.
+(This information will be used for checking returned tuples' attribute
+integrity.)</li>
+</ul></td></tr>
+<tr><td valign="top"><pre>
+CREATE OR REPLACE FUNCTION setof_example_1(OUT foo int)
+RETURNS SETOF int AS $$
+(list
+  '(("foo" . 13))
+  '(("foo" . 14)))
+$$ LANGUAGE plscheme;
+</pre></td><td valign="top"><pre>
+test=# SELECT * FROM setof_example_1();
+ foo
+-----
+  13
+  14
+(2 rows)
+</pre></td></tr>
+
+<tr><td valign="top"><pre>
+CREATE OR REPLACE FUNCTION setof_example_2(OUT foo int,
+                                           OUT bar int)
+RETURNS SETOF record AS $$
+(list
+  '(("foo" . 1) ("bar" . 2))
+  '(("foo" . 3) ("bar" . 4)))
+$$ LANGUAGE plscheme;
+</pre></td><td valign="top"><pre>
+test=# SELECT * FROM setof_example_2();
+ foo | bar
+-----+-----
+   1 |   2
+   3 |   4
+(2 rows)
+</pre></td></tr>
+
+<tr id="shared"><td colspan="2"><b>Globally shared variables.</b><ul>
+<li>Despite PL/scheme executes every procedure in its own environment, it
+exposes <tt>pl-shared</tt> variable accessible within procedures for the
+lifetime of the current session. Therefore, it's possible to use
+<tt>pl-shared</tt> to share data between procedures within the same
+session.</li>
+<tr><td valign="top"><pre>
+CREATE FUNCTION set_var(num int) RETURNS int AS '
+(let ((oldnum pl-shared))
+  (set! pl-shared num)
+  oldnum)
+' LANGUAGE plscheme;
+
+CREATE FUNCTION get_var()
+RETURNS int AS 'pl-shared'
+LANGUAGE plscheme;
+</pre></td><td valign="top"><pre>
+test=# SELECT set_var(13);
+ set_var
+---------
+      17
+(1 row)
+
+test=# SELECT get_var();
+ get_var
+---------
+      13
+(1 row)
+</pre></td></tr>
+
+<tr id="exttyp"><td colspan="2"><b>Extensible type support.</b><ul>
+<li>All builtin and custom types defined within the PostgreSQL are
+transferred to Scheme side as plain string outputs via types' typoutput
+functions.</li>
+<li>Scheme-to-SQL/SQL-to-Scheme data conversions are maintained by data
+exposition/imposition functions defined in dataconv.scm. You can easily add
+support for a specific type by placing suitable conversion routines into
+<tt>pl-data-imposers</tt>/<tt>pl-data-imposers</tt> list(s).</li>
+</ul></td></tr>
+<tr><td valign="top"><pre>
+--
+-- Now I'll try to demonstrate an example for registering
+-- `point' SQL data type into data conversion routines.
+--
+
+--
+-- Modify dataconv.scm as described below:
+--
+(define pl-data-imposers
+  (list
+    ;
+    ; Point
+    ;
+    (list
+      '("point")
+      (lambda (value)
+        (let ((token (string-tokenize
+                       value char-set:digit)))
+          (cons (string-&gt;number (car token))
+                (string-&gt;number (cadr token))))))
+  ...))
+...
+(define pl-data-exposers
+  (list
+    ;
+    ; Point
+    ;
+    (list
+      (lambda (obj)
+        (and (pair? obj)
+             (number? (car obj))
+             (number? (cdr obj))))
+      (lambda (obj)
+        (string-append
+          (number-&gt;string (car obj)) ","
+          (number-&gt;string (cdr obj))))
+      (lambda (obj) "point"))
+  ...))
+
+--
+-- Here goes a procedure with argument of type point.
+--
+CREATE OR REPLACE FUNCTION y_symmetry(p point)
+RETURNS point AS '
+; Calculate symmetric of the point through y-axis.
+(cons (* (car p) -1)
+      (cdr p))
+' LANGUAGE plscheme IMMUTABLE;
+</pre></td><td valign="top"><pre>
+--
+-- Dance like the wind bo!
+--
+test=# SELECT y_symmetry('123,456'::point);
+ y_symmetry 
+------------
+ (-123,456)
+(1 row)
+</pre></td></tr>
+
+<tr id="arrays"><td colspan="2"><b>1D array data type support.</b><ul>
+<li>SQL 1D array data type will get imposed as vector, and vice-versa, vectors
+will get exposed as their SQL array data type representations.</li>
+<li>Because of conversion routines aren't aware of the size of the array's
+dimensions, if imposition/exposition of the array fails, procedure execution
+will fail. Therefore, PL/scheme only allows 1D arrays at the moment. (But this
+limitation can be removed by modifying conversion routines.)</li>
+</ul></td></tr>
+<tr><td valign="top"><pre>
+--
+-- Multiple every array item with 2.
+--
+CREATE OR REPLACE FUNCTION arr_test_1(u int[])
+RETURNS int[] AS $$
+(list-&gt;vector
+  (map
+    (lambda (n) (* 2 n))
+    (vector-&gt;list u)))
+$$ LANGUAGE plscheme;
+</pre></td><td valign="top"><pre>
+test=# SELECT arr_test_1(ARRAY[1,2,3]);
+ arr_test_1 
+------------
+ {2,4,6}
+(1 row)
+</pre></td></tr>
+<tr><td valign="top"><pre>
+--
+-- Return an array with a NULL item.
+--
+CREATE OR REPLACE FUNCTION arr_test_2()
+RETURNS int[] AS $$
+(vector 1 2 '() 3)
+$$ LANGUAGE plscheme;
+</pre></td><td valign="top"><pre>
+test=# SELECT arr_test_2();
+  arr_test_2
+--------------
+ {1,2,NULL,3}
+(1 row)
+</pre></td></tr>
+<tr><td valign="top"><pre>
+CREATE OR REPLACE FUNCTION arr_test_3(u int[])
+RETURNS text AS $$
+(object-&gt;string u)
+$$ LANGUAGE plscheme;
+</pre></td><td valign="top"><pre>
+--
+-- Pass an array with some NULL values.
+--
+test=# SELECT arr_test_3(ARRAY[1,2,NULL,3]);
+ arr_test_3
+-------------
+ #(1 2 () 3)
+(1 row)
+</pre></td></tr>
+
+<tr id="init"><td colspan="2"><b>Initialization script functionality.</b><ul>
+<li><tt>init.scm</tt> file under <tt>plscheme[u].module_dir</tt> directory will
+get evaluted just before every procedure execution within the same module
+interface as the procedure. You can easily customize this file by your needs to
+effect every procedure that will get evaluted automatically.
+</li></ul></td></tr>
+
+</table>
+
+<style type="text/css"><!--
+div.refhdr-first, div.refhdr { padding-bottom: 8px; }
+div.refhdr { padding-top: 32px; }
+--></style>
+
+<h2 id="reference">Function &amp; Symbol Reference</h2>
+<div class="refhdr-first" id="spi-execute">&#8211; <b>spi-execute</b>
+<i>command</i> [<i>count</i>]</div>
+<div>Executes the specified SQL <i>command</i>. If <i>count</i> is zero (or
+isn't specified as an option) then the command is executed for all rows that it
+applies to. If <i>count</i> is greater than 0, then the number of rows for which
+the <i>command</i> will be executed is restricted (much like a LIMIT
+clause).</div>
+<div>Function returns an associative array with <tt>status</tt>,
+<tt>affected-tuples</tt> and <tt>returned-tuples</tt> keys. On success,
+<tt>status</tt> will point to one of the below symbols:</div>
+<ul>
+<li><tt>spi-ok-select</tt></li>
+<li><tt>spi-ok-select-into</tt></li>
+<li><tt>spi-ok-delete</tt></li>
+<li><tt>spi-ok-delete-returning</tt></li>
+<li><tt>spi-ok-insert</tt></li>
+<li><tt>spi-ok-insert-returning</tt></li>
+<li><tt>spi-ok-update</tt></li>
+<li><tt>spi-ok-update-returning</tt></li>
+<li><tt>spi-ok-utility</tt></li>
+</ul>
+<div>On failure, function will throw an exception with one of the symbols
+below. (Exception will be thrown with arguments passed to function.)</div>
+<ul>
+<li><tt>spi-error-argument</tt></li>
+<li><tt>spi-error-copy</tt></li>
+<li><tt>spi-error-cursor</tt></li>
+<li><tt>spi-error-transaction</tt></li>
+<li><tt>spi-error-opunknown</tt></li>
+<li><tt>spi-error-unconnected</tt></li>
+</ul>
+<div><tt>affected-tuples</tt> and <tt>returned-tuples</tt> keys will be
+available when there's any affected or returned tuple. It's programmers
+resonsiblity to take care of this.</div>
+
+<div class="refhdr" id="ref-spi-prepare">&#8211; <b>spi-prepare</b>
+<i>command</i> <i>type</i></div>
+<div>Returns an execution plan for the <i>command</i> in <tt>spi-plan</tt>
+type (which can be passed to <tt>spi-execute-prepared</tt> later) with
+respect to specified arguments.</div>
+<div><i>type</i> is a vector specifying parameter types (in string format)
+used in the <i>command</i>.</div>
+
+<div class="refhdr" id="ref-spi-execute-prepared">&#8211;
+<b>spi-execute-prepared</b> <i>plan</i> <i>args</i> [<i>count</i>]</div>
+<div>Executes specified <i>plan</i> (in <tt>spi-plan</tt> type that's returned
+from <tt>spi-prepare</tt> function) with specified <i>args</i> vector.</div>
+<div>Function returns an associative array as in <tt>spi-execute</tt> and
+<i>count</i> works same too.</div>
+
+<div class="refhdr" id="ref-report">&#8211; <b>report</b> <i>level</i>
+<i>message</i> [<i>hint</i>]</div>
+<div>Function reports an error/exception with specified <i>message</i> (and
+optionally <i>hint</i>).</div>
+<div>Report <i>level</i> can be one of the below variables:</div>
+<ul>
+<li><tt>debug-level</tt></li>
+<li><tt>log-level</tt></li>
+<li><tt>info-level</tt></li>
+<li><tt>notice-level</tt></li>
+<li><tt>warning-level</tt></li>
+<li><tt>exception-level</tt></li>
+</ul>
+
+<h2 id="install">Download &amp; Installation</h2>
+
+<p>You can find latest release of PL/scheme under <a
+href="http://pgfoundry.org/frs/?group_id=1000220">Files section</a> or <a
+href="http://pgfoundry.org/scm/?group_id=1000220">CVS repository</a> located in
+<a href="http://pgfoundry.org/">pgFoundry</a> <a
+href="http://pgfoundry.org/projects/plscheme">project page</a>. You'll also need
+<a href="http://ftp.gnu.org/pub/gnu/guile/">Guile</a> libraries (version &gt;=
+1.8.0) to be able to compile and run PL/scheme. But luckily, most of the
+Linux/BSD distributions provide Guile by default, or at least there should be a
+binary package of it appropriate to your distribution.</p>
+
+<p>The most easy way to compile and install PL/scheme is to use install.sh
+script that comes with the package:</p>
+
+<pre>$ ./install.sh --help
+Usage:
+  ./install.sh [&lt;options&gt;]
+
+Available Options:
+  --pg-config &lt;path&gt;    pg_config executable's path.
+  --module-dir &lt;path&gt;   Scheme modules directory.
+                              (Default: pg_config --pkglibdir)
+  --max-cache-size &lt;n&gt;  Maximum number of (non-volatile and non-SRF)
+                        procedures to cache.
+  --dbname &lt;dbname&gt;     Database that will be connected to install PL/scheme
+                        into pg_pltemplate system catalog. (`postgres' will be
+                        used by default.)
+  --safe-r5rs           Compile PL/scheme as a trusted PL by excluding untrusted
+                        functions. (Barebone safe-r5rs module will be used.)
+
+After successfully finishing the installation, you may as well use
+
+  plscheme[u].module_dir
+  plscheme[u].cache_max_size
+
+GUC variables to alter the associated values on-the-fly. (Otherwise, values
+passed to PL/scheme at the compile time will be used as default.)
+
+$ CPPFLAGS="-I/opt/include" \
+&gt; LDFLAGS="-L/opt/lib -lpthread" \
+&gt; ./install.sh --pg-config /farm/usr/bin/pg_config
+pg_config     : /farm/usr/bin/pg_config
+module-dir    : /farm/usr/lib/postgresql
+max-cache-size: 64
+dbname        : postgres
+safe-r5rs     : NO
+PSQL          : /farm/usr/bin/psql  postgres
+CPPFLAGS      : -g -Wall -fpic -c -I/farm/usr/include/postgresql/server -I/opt/include
+LDFLAGS       : -shared -lguile -L/opt/lib -lpthread
+
+Compiling... done.
+Linking... done.
+Copying files...
+  plschemeu.so -&gt; /farm/usr/lib/postgresql
+  init.scm -&gt; /farm/usr/lib/postgresql
+  dataconv.scm -&gt; /farm/usr/lib/postgresql
+Installing language into pg_pltemplate... 
+INSERT 0 1
+--------------------------------------------------------------------------
+PL/scheme is succesfully compiled and introduced into pg_pltemplate system
+catalog. You can start using PL/scheme in any database you wish just after
+issuing "CREATE LANGUAGE plschemeu" command while connected to the related
+database.
+
+For more information about PL/scheme project you can visit our homepage at
+http://plscheme.projects.postgresql.org/</pre>
+
+<p>It's also possible to follow below steps that goes into depths of the
+compilation and installation process.</p>
+
+<pre>#
+# While compiling from sources, pay attention to Guile library directories and
+# PostgreSQL directories exposed by pg_config. Also, you need to define
+# MODULEDIR to make PL/scheme locate place its Scheme files.
+#
+PG_INCLUDEDIR=`pg_config --includedir-server`
+PG_PKGLIBDIR=`pg_config --pkglibdir`
+
+cc -g -Wall -fpic -c \
+  -DMODULE_DIR=\"$PG_PKGLIBDIR\" \
+  -DMAX_CACHE_SIZE=64 \
+  -I$PG_INCLUDEDIR \
+  -o plschemeu.o plscheme.c
+# You can also use a -DSAFE_R5RS flag to get a trusted PL.
+
+cc -lguile -shared -o plschemeu.so plschemeu.o
+
+cp plschemeu.so $PG_PKGLIBDIR
+cp init.scm $PG_PKGLIBDIR
+cp dataconv.scm $PG_PKGLIBDIR</pre>
+
+<p>After you've got a .so file by manually compiled from source or downloading
+a binary file, you can easily install PL/scheme into a specific database via
+below SQL command:</p>
+
+<pre>CREATE FUNCTION plschemeu_call_handler()
+  RETURNS language_handler
+  AS '$libdir/plschemeu' LANGUAGE C;
+
+CREATE LANGUAGE plschemeu
+  HANDLER plschemeu_call_handler;</pre>
+
+<p>If everything went ok and you still get these kind of error message while
+trying to load plschemeu.so:</p>
+
+<pre>FATAL:  could not load library "/../plschemeu.so": /.../libguile.so.17: undefined symbol: pthread_create</pre>
+
+<p>Just use -lpthread flag while linking plschemeu.so. (Or prepend -lpthread into
+your LDFLAGS environment varible just before calling ./install.sh script.)</p>
+
+<h2 id="thanks">Thanks</h2>
+
+<p>Thanks so much to Rob Browning, Ludovic Courtès, David Fetter, Yeb
+Havinga, and Dale P. Smith for their kindly help.</p>
+
+<hr>
+
+<table border="0" width="100%"><tr>
+<td><i>$Id: index.html,v 1.35 2008/02/18 00:33:27 knt Exp $</i></td>
+<td align="right">Maintained by <a
+href="http://www.students.itu.edu.tr/~yazicivo/">Volkan Yazıcı</a></td>
+</tr></table>
+
+</body></html>
