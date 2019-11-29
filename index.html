@@ -1,7 +1,9 @@
-<html><head>
+<html lang="en">
+<head>
 	<title>PL/scheme</title>
-	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-9">
-</head></body>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
 
 <h1>PL/scheme, Procedural Language Handler</h1>
 
@@ -73,7 +75,7 @@ You can find some of the supported features by PL/scheme in the below list.
 	others) are naturally shipped with PL/scheme too.</li>
 </ul>
 
-<h2 id="features"><span alt="What You See Is What You Get">WYSIWYG</span>
+<h2 id="documentation"><span alt="What You See Is What You Get">WYSIWYG</span>
 Documentation</h2>
 <table border="1px" width="100%">
 
@@ -642,7 +644,7 @@ div.refhdr { padding-top: 32px; }
 --></style>
 
 <h2 id="reference">Function &amp; Symbol Reference</h2>
-<div class="refhdr-first" id="spi-execute">&#8211; <b>spi-execute</b>
+<div class="refhdr-first" id="ref-spi-execute">&#8211; <b>spi-execute</b>
 <i>command</i> [<i>count</i>]</div>
 <div>Executes the specified SQL <i>command</i>. If <i>count</i> is zero (or
 isn't specified as an option) then the command is executed for all rows that it
@@ -708,12 +710,9 @@ optionally <i>hint</i>).</div>
 
 <h2 id="install">Download &amp; Installation</h2>
 
-<p>You can find latest release of PL/scheme under <a
-href="http://pgfoundry.org/frs/?group_id=1000220">Files section</a> or <a
-href="http://pgfoundry.org/scm/?group_id=1000220">CVS repository</a> located in
-<a href="http://pgfoundry.org/">pgFoundry</a> <a
-href="http://pgfoundry.org/projects/plscheme">project page</a>. You'll also need
-<a href="http://ftp.gnu.org/pub/gnu/guile/">Guile</a> libraries (version &gt;=
+<p>You can fetch the sources from <a href="https://github.com/vy/plscheme"
+>PL/scheme GitHub project page</a>. You'll also need <a
+href="http://ftp.gnu.org/pub/gnu/guile/">Guile</a> libraries (version &gt;=
 1.8.0) to be able to compile and run PL/scheme. But luckily, most of the
 Linux/BSD distributions provide Guile by default, or at least there should be a
 binary package of it appropriate to your distribution.</p>
@@ -772,7 +771,7 @@ issuing "CREATE LANGUAGE plschemeu" command while connected to the related
 database.
 
 For more information about PL/scheme project you can visit our homepage at
-http://plscheme.projects.postgresql.org/</pre>
+https://vlkan.com/plscheme</pre>
 
 <p>It's also possible to follow below steps that goes into depths of the
 compilation and installation process.</p>
@@ -819,15 +818,12 @@ your LDFLAGS environment varible just before calling ./install.sh script.)</p>
 
 <h2 id="thanks">Thanks</h2>
 
-<p>Thanks so much to Rob Browning, Ludovic Courtès, David Fetter, Yeb
+<p>Thanks so much to Rob Browning, Ludovic CourtÃ¨s, David Fetter, Yeb
 Havinga, and Dale P. Smith for their kindly help.</p>
 
 <hr>
 
-<table border="0" width="100%"><tr>
-<td><i>$Id: index.html,v 1.35 2008/02/18 00:33:27 knt Exp $</i></td>
-<td align="right">Maintained by <a
-href="http://www.students.itu.edu.tr/~yazicivo/">Volkan Yazıcı</a></td>
-</tr></table>
+<div align="right">Maintained by <a
+href="https://vlkan.com/">Volkan YazÄ±cÄ±</a></div>
 
 </body></html>
