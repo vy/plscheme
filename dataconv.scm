@@ -1,8 +1,7 @@
 ;;;;
 ;;;; PL/scheme, SQL<->Scheme Data Conversion Routines
-;;;; $Id: dataconv.scm,v 1.5 2006/12/09 19:52:07 knt Exp $
 ;;;;
-;;;; Copyright (c) 2006, Volkan YAZICI <yazicivo@ttnet.net.tr>
+;;;; Copyright (c) 2006-2019, Volkan Yazıcı <vlkan.yazici@gmail.com>
 ;;;; All rights reserved.
 ;;;;
 ;;;; Redistribution and use in source and binary forms, with or without

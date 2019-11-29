@@ -1,8 +1,7 @@
 ;;;;
 ;;;; PL/scheme, Initialization Script
-;;;; $Id: init.scm,v 1.1 2006/12/09 17:02:32 knt Exp $
 ;;;;
-;;;; Copyright (c) 2006, Volkan YAZICI <yazicivo@ttnet.net.tr>
+;;;; Copyright (c) 2006-2019, Volkan Yazıcı <vlkan.yazici@gmail.com>
 ;;;; All rights reserved.
 ;;;;
 ;;;; Redistribution and use in source and binary forms, with or without

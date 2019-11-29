@@ -1,9 +1,8 @@
 #!/bin/sh
 #
 # PL/scheme Installation Script
-# $Id: install.sh,v 1.9 2008/02/18 00:02:52 knt Exp $
 #
-# Copyright (c) 2006, Volkan YAZICI <yazicivo@ttnet.net.tr>
+# Copyright (c) 2006-2019, Volkan Yazıcı <vlkan.yazici@gmail.com>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -310,5 +309,5 @@ issuing "CREATE LANGUAGE plscheme$u" command while connected to the related
 database.
 
 For more information about PL/scheme project you can visit our homepage at
-http://plscheme.projects.postgresql.org/
+https://vlkan.com/plscheme/
 EOF

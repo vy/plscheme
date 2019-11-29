@@ -1,8 +1,7 @@
 /*
  * PL/scheme, Procedural Language Handler
- * $Id: plscheme.c,v 1.25 2008/02/24 09:38:24 knt Exp $
  *
- * Copyright (c) 2006, Volkan YAZICI <yazicivo@ttnet.net.tr>
+ * Copyright (c) 2006-2019, Volkan Yazıcı <vlkan.yazici@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

@@ -1,8 +1,7 @@
 /*
  * PL/scheme Exception Definitions
- * $Id: exceptions.c,v 1.2 2006/10/14 12:49:56 knt Exp $
  *
- * Copyright (c) 2006, Volkan YAZICI <yazicivo@ttnet.net.tr>
+ * Copyright (c) 2006-2019, Volkan Yazıcı <vlkan.yazici@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
