@@ -2,7 +2,7 @@
 #
 # PL/scheme Installation Script
 #
-# Copyright (c) 2006-2019, Volkan Yazıcı <vlkan.yazici@gmail.com>
+# Copyright (c) 2006-2024, Volkan Yazıcı <volkan@yazi.ci>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -309,5 +309,5 @@ issuing "CREATE LANGUAGE plscheme$u" command while connected to the related
 database.
 
 For more information about PL/scheme project you can visit our homepage at
-https://vlkan.com/plscheme/
+https://volkan.yazi.ci/plscheme/
 EOF

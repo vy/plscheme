@@ -1,7 +1,7 @@
 ;;;;
 ;;;; PL/scheme, Initialization Script
 ;;;;
-;;;; Copyright (c) 2006-2019, Volkan Yazıcı <vlkan.yazici@gmail.com>
+;;;; Copyright (c) 2006-2024, Volkan Yazıcı <volkan@yazi.ci>
 ;;;; All rights reserved.
 ;;;;
 ;;;; Redistribution and use in source and binary forms, with or without

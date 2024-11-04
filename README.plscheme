@@ -4,6 +4,13 @@
  LI--'  I|      #/  I.__  |     |__#| |___ | \\/#| |___
  LI     I|__,  /|       \ |     |  #| |    |  ^ #| |
  LI     I___| I/     __%/ \__%/ |  #| |___ |    &| |___
+__________                _____________________________________________________
+_/_/_/_/_/ PROJECT STATUS /_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+
+Warning! This project is not maintained anymore. If you already are a user, or
+consider becoming one, you should either step up as a maintainer or migrate to
+an alternative.
+
 __________            ________________________________________________________
 _/_/_/_/_/ PL/SCHEME /_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 
@@ -14,7 +21,7 @@ R5RS compliancy of Guile, PL/scheme will power up PostgreSQL procedures in your
 favorite programming language!
 
 For more information you can visit project web site at
-https://vlkan.com/plscheme/
+https://volkan.yazi.ci/plscheme/
 
 
 __________                             ________________________________________
@@ -79,7 +86,7 @@ _/_/_/_/_/ LICENSE /_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 
 PL/scheme, Procedural Language Handler
 
-Copyright (c) 2006-2019, Volkan Yazıcı <vlkan.yazici@gmail.com>
+Copyright (c) 2006-2024, Volkan Yazıcı <volkan@yazi.ci>
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,

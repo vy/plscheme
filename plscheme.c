@@ -1,7 +1,7 @@
 /*
  * PL/scheme, Procedural Language Handler
  *
- * Copyright (c) 2006-2019, Volkan Yazıcı <vlkan.yazici@gmail.com>
+ * Copyright (c) 2006-2019, Volkan Yazıcı <volkan@yazi.ci>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
